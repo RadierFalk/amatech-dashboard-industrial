@@ -1,0 +1,6 @@
+# Bibliotecas do Dashboard Industrial (Python 3.11 ou superior)
+# sqlite3 e hashlib já fazem parte do Python e não precisam ser instalados.
+# Sugestão: fixar as versões testadas na S1 (ex.: streamlit==X.Y.Z).
+streamlit
+pandas
+plotly
