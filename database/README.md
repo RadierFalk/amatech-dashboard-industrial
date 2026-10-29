@@ -12,4 +12,4 @@ Para criar o banco:
 python -c "import sqlite3; sqlite3.connect('database/banco.db').executescript(open('database/banco_dashboard_industrial.sql', encoding='utf-8').read())"
 ```
 
-Os indicadores **não** ficam no banco: são calculados pela CalculadoraIndicadores (`servicos/`). Os dados de teste usam os números do exemplo do enunciado (meta 1.500, produção 1.420, 60 reprovados, parada de 85 min). O usuário de teste é `admin` / `admin123`, apenas para testes.
+Os indicadores **não** ficam no banco: são calculados pela CalculadoraIndicadores (`servicos/`). Os dados de teste usam os números do exemplo do enunciado (meta 1.500, produção 1.420, 60 reprovados, parada de 85 min). Há um usuário de teste por perfil (lista no README principal), apenas para testes. Os modelos de planilha CSV ficam em `modelos_csv/`.

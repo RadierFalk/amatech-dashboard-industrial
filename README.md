@@ -21,7 +21,7 @@ Projeto 3 do **Projeto Integrador** da disciplina Ambiente Fabril I · Engenhari
 | --- | --- |
 | OA1 — Diagnóstico e requisitos | Concluída |
 | OA2 — Modelagem da solução | Concluída (ver `docs/`) |
-| OA3 — Desenvolvimento do MVP | Em desenvolvimento: 5 sprints de 01/10 a 04/11/2026 |
+| OA3 — Desenvolvimento do MVP | MVP funcionando (10 telas, 40 testes); integração com os outros setores em andamento |
 
 | Sprint | Período | Foco |
 | --- | --- | --- |
@@ -49,7 +49,8 @@ Quatro camadas; cada camada só conversa com a camada logo abaixo.
 
 ```
 amatech-dashboard-industrial/
-├── app.py              ← (a criar) tela de login, entrada do sistema
+├── app.py              ← tela de login e menu por perfil (entrada do sistema)
+├── config.py           ← caminho do banco, fuso horário e endereços dos outros setores
 ├── pages/              ← telas do Streamlit
 ├── servicos/           ← regras de negócio e cálculo dos indicadores
 ├── modelos/            ← as 13 classes de dados
@@ -61,7 +62,7 @@ amatech-dashboard-industrial/
 └── README.md
 ```
 
-## Como executar (depois da S1)
+## Como executar
 
 ```bash
 # 1. Criar e ativar um ambiente virtual
@@ -71,14 +72,34 @@ python -m venv .venv
 # 2. Instalar as bibliotecas
 pip install -r requirements.txt
 
-# 3. Criar o banco a partir do script (com dados de teste)
-python -c "import sqlite3; sqlite3.connect('database/banco.db').executescript(open('database/banco_dashboard_industrial.sql', encoding='utf-8').read())"
-
-# 4. Abrir o sistema no navegador (quando app.py existir)
+# 3. Abrir o sistema no navegador (http://localhost:8501)
 streamlit run app.py
 ```
 
-Usuário de teste criado pelo script: `admin` / `admin123` (somente para testes; trocar antes de qualquer uso real).
+Na primeira execução, o banco `database/banco.db` é criado automaticamente a partir de `database/banco_dashboard_industrial.sql`, já com os dados do exemplo do enunciado (15/08/2026). Para recomeçar do zero, basta apagar o arquivo `banco.db`. Outro caminho pode ser escolhido pela variável de ambiente `DASHBOARD_DB`.
+
+### Usuários de teste
+
+Somente para testes; trocar as senhas antes de qualquer uso real.
+
+| Login | Senha | Perfil | Telas |
+| --- | --- | --- | --- |
+| `supervisor` | `super123` | Supervisor de produção | Todas, exceto Usuários; em Cadastros, só os limites do semáforo |
+| `gestor` | `gestor123` | Gestor/Diretoria | Painel e Histórico |
+| `operador` | `oper123` | Operador de estação | Produção e Qualidade (defeitos) |
+| `inspetor` | `insp123` | Inspetor de qualidade | Qualidade (defeitos e retrabalho) |
+| `manutencao` | `manut123` | Manutenção | Paradas |
+| `admin` | `admin123` | Administrador | Cadastros e Usuários |
+
+### Testes
+
+```bash
+python -m pytest testes -q
+```
+
+### Importação de planilhas
+
+Os modelos ficam em `database/modelos_csv/` e também podem ser baixados na tela de Importação. Separador `;`, datas em DD/MM/AAAA. Uma única linha inválida recusa o arquivo inteiro, e a tela lista linha, coluna e problema de cada erro (RN06).
 
 ## Documentação
 

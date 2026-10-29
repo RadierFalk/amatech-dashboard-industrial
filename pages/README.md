@@ -1,6 +1,6 @@
 # pages/ — Camada 1: Apresentação
 
-Telas do sistema em Streamlit. Cada arquivo `.py` desta pasta vira automaticamente uma tela no menu lateral; o número no início do nome define a ordem. O login fica em `app.py`, na raiz.
+Telas do sistema em Streamlit. O login e o menu ficam em `app.py`, na raiz: ele monta o menu com `st.navigation`, mostrando só as telas que o perfil do usuário pode abrir. `comum.py` reúne o que todas as telas usam (usuário logado, permissões, formatação brasileira, cartões do semáforo e filtros).
 
 | Tela | Arquivo sugerido | Perfis | Requisitos |
 | --- | --- | --- | --- |
