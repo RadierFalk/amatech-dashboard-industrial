@@ -13,4 +13,14 @@ Casos de referência (dados do enunciado), com resultado esperado:
 | Meta duplicada | mesma data, turno e produto | registro recusado (RN09) |
 | Importação com erro | planilha com 1 linha inválida | nada gravado (RN06) |
 
-Ferramenta de testes: a definir pela equipe.
+Ferramenta de testes: **pytest**. Cada teste usa um banco novo numa pasta temporária, criado pelo script SQL (`conftest.py`), então os testes nunca mexem no `database/banco.db`.
+
+```bash
+python -m pytest testes -q
+```
+
+| Arquivo | O que testa |
+| --- | --- |
+| `test_indicadores.py` | As fórmulas com os casos de referência acima, o semáforo e os limites (RN08), o período do filtro (RN05) e a parada em andamento |
+| `test_registro.py` | Integridade dos registros, meta duplicada (RN09), retrabalho sem motivo (RN02), paradas, atualização de registros externos, sinônimos dos cadastros comuns, login e permissões |
+| `test_importador.py` | Importação tudo ou nada (RN06), erros por linha e coluna, coluna ausente, separador e codificação, modelos CSV e sincronização sem duplicar |
