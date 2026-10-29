@@ -8,6 +8,12 @@
 -- Observação: os indicadores NÃO são armazenados no banco. Eles são
 -- calculados na consulta pela classe CalculadoraIndicadores (camada 2, Python),
 -- decisão da OA2. O banco guarda apenas dados brutos e garante as regras de integridade.
+--
+-- OA3 (integração com os outros setores): registro_producao, defeito, retrabalho e parada
+-- ganharam origem_sistema e id_externo. Quando o dado vem da sincronização com outro sistema
+-- (Rastreabilidade, Qualidade ou Manutenção), o par (origem_sistema, id_externo) identifica o
+-- registro de lá; sincronizar de novo atualiza o registro em vez de duplicar.
+-- O app.py cria o banco automaticamente a partir deste script na primeira execução.
 -- =====================================================================
 
 PRAGMA foreign_keys = ON;   -- obrigatório no SQLite para validar as FKs (RNF04)
@@ -130,6 +136,8 @@ CREATE TABLE registro_producao (
     registrado_por  INTEGER NOT NULL REFERENCES usuario(id_usuario),
     registrado_em   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     id_importacao   INTEGER REFERENCES importacao(id_importacao),    -- NULL = lançado no formulário
+    origem_sistema  TEXT,                                            -- NULL = lançado no Dashboard
+    id_externo      TEXT,                                            -- id do registro no sistema de origem
     CHECK (qtd_aprovada + qtd_reprovada = qtd_realizada)             -- RNF04
 );
 
@@ -144,7 +152,9 @@ CREATE TABLE defeito (
     data_hora        TEXT    NOT NULL,
     observacao       TEXT,
     registrado_por   INTEGER NOT NULL REFERENCES usuario(id_usuario),
-    id_importacao    INTEGER REFERENCES importacao(id_importacao)
+    id_importacao    INTEGER REFERENCES importacao(id_importacao),
+    origem_sistema   TEXT,
+    id_externo       TEXT
 );
 
 -- Retrabalho com etapa de retorno (RF04, RN02)
@@ -155,7 +165,9 @@ CREATE TABLE retrabalho (
     motivo              TEXT    NOT NULL,
     quantidade          INTEGER NOT NULL CHECK (quantidade > 0),
     data_hora           TEXT    NOT NULL,
-    registrado_por      INTEGER NOT NULL REFERENCES usuario(id_usuario)
+    registrado_por      INTEGER NOT NULL REFERENCES usuario(id_usuario),
+    origem_sistema      TEXT,
+    id_externo          TEXT
 );
 
 -- Paradas de linha (RF05, RN04). fim NULL = parada ainda em andamento.
@@ -170,6 +182,8 @@ CREATE TABLE parada (
     observacao      TEXT,
     registrado_por  INTEGER NOT NULL REFERENCES usuario(id_usuario),
     id_importacao   INTEGER REFERENCES importacao(id_importacao),
+    origem_sistema  TEXT,
+    id_externo      TEXT,
     CHECK (fim IS NULL OR fim > inicio)
 );
 
@@ -194,6 +208,12 @@ CREATE INDEX idx_parada_inicio   ON parada            (inicio, id_turno);
 CREATE INDEX idx_perda_filtro    ON perda             (data, id_turno, id_produto);
 CREATE INDEX idx_defeito_prod    ON defeito           (id_producao);
 
+-- Um mesmo registro de outro sistema entra uma única vez (sincronização sem duplicar)
+CREATE UNIQUE INDEX ux_producao_externo   ON registro_producao (origem_sistema, id_externo) WHERE id_externo IS NOT NULL;
+CREATE UNIQUE INDEX ux_defeito_externo    ON defeito           (origem_sistema, id_externo) WHERE id_externo IS NOT NULL;
+CREATE UNIQUE INDEX ux_retrabalho_externo ON retrabalho        (origem_sistema, id_externo) WHERE id_externo IS NOT NULL;
+CREATE UNIQUE INDEX ux_parada_externo     ON parada            (origem_sistema, id_externo) WHERE id_externo IS NOT NULL;
+
 -- =====================================================================
 -- 5. DADOS INICIAIS E DADOS SIMULADOS (baseados no item 2.8 do enunciado)
 -- =====================================================================
@@ -205,11 +225,22 @@ INSERT INTO perfil (nome, descricao) VALUES
  ('Gestor/Diretoria',       'Painel, filtros e histórico (somente leitura)'),
  ('Administrador',          'Usuários, perfis e cadastros básicos');
 
--- Senha inicial "admin123" em SHA-256 apenas para testes.
--- Na OA3, trocar por um algoritmo próprio para senhas (ex.: bcrypt) e alterar a senha.
+-- Usuários de teste, um por perfil (somente para testes; trocar as senhas antes de qualquer uso real).
+-- Senhas protegidas com PBKDF2-SHA256 + sal (hashlib), formato "pbkdf2_sha256$iterações$sal$hash" (RNF07).
+-- admin/admin123 · supervisor/super123 · gestor/gestor123 · operador/oper123 · inspetor/insp123 · manutencao/manut123
 INSERT INTO usuario (nome, login, senha_hash, id_perfil) VALUES
  ('Administrador do sistema', 'admin',
-  '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 6);
+  'pbkdf2_sha256$200000$2a749bbfdb6975587c0f333750989db5$aed48177dd4d2dbf76b9943f49c45f22e730b99efd116dadcbd2ba76c52707c4', 6),
+ ('Maria Souza', 'supervisor',
+  'pbkdf2_sha256$200000$7c71c22036294a5a62eb7fd7addc2bd1$c3bb8911e9ae9225489b599253964eebf5cd807b11687d63ffb74f5414a27776', 4),
+ ('Paulo Andrade', 'gestor',
+  'pbkdf2_sha256$200000$c2454efbedfafc31fd69144c64bea1c6$bf0f862471b1066bed2cbef83d91c81e18955582cb41bf9b04c09435eac8fc28', 5),
+ ('João Pereira', 'operador',
+  'pbkdf2_sha256$200000$56068f268441fc81c44dd0f6f9a50d18$de9fd4374339550cd207b528fb0280cd8f443791d1f7fc687dff7661e484f1c1', 1),
+ ('Rita Campos', 'inspetor',
+  'pbkdf2_sha256$200000$f0fa8f9521aabdcc5e18d94960daf0f3$620edcca36e5daa61d5e6c82a11e75164de0401d34af4f2988445f24fb3700ce', 2),
+ ('Sérgio Melo', 'manutencao',
+  'pbkdf2_sha256$200000$ad2d3f0582ee1c3a9fb631bc81a59586$296841b9849bd60498887cd36c26b7eaff9af85025474e213ab282b05068d792', 3);
 
 INSERT INTO turno (nome, hora_inicio, hora_fim, duracao_min) VALUES
  ('1º turno', '06:00', '14:00', 480),
@@ -235,7 +266,17 @@ INSERT INTO tipo_defeito (descricao, categoria) VALUES
  ('Falha no teclado',   'funcional'),
  ('Falha no touchpad',  'funcional'),
  ('Tela com defeito',   'visual'),
- ('Etiqueta incorreta', 'documental');
+ ('Etiqueta incorreta', 'documental'),
+ -- Lista comum com o Controle da Qualidade (cadastros comuns do ecossistema, OA3)
+ ('Falha de USB',             'funcional'),
+ ('Falha de áudio',           'funcional'),
+ ('Falha no Wi-Fi',           'funcional'),
+ ('Falha na câmera',          'funcional'),
+ ('Falha na bateria',         'funcional'),
+ ('Falha no armazenamento',   'funcional'),
+ ('Desempenho insuficiente',  'funcional'),
+ ('Falha de montagem',        'visual'),
+ ('Falha de software',        'funcional');
 
 INSERT INTO motivo_parada (descricao, tipo) VALUES
  ('Falha de equipamento',  'corretiva'),
