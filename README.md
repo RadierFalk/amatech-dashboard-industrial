@@ -48,7 +48,7 @@ Quatro camadas; cada camada só conversa com a camada logo abaixo.
 ## Estrutura do repositório
 
 ```
-amatech-dashboard-industrial/
+dashboard/
 ├── app.py              ← tela de login e menu por perfil (entrada do sistema)
 ├── config.py           ← caminho do banco, fuso horário e endereços dos outros setores
 ├── pages/              ← telas do Streamlit
