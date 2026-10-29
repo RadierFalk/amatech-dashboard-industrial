@@ -1,8 +1,12 @@
 """T07 Importação de planilhas (RF16, RN06). Supervisor. Tudo ou nada: uma linha inválida recusa o arquivo."""
+from datetime import timedelta
+
 import pandas as pd
 import streamlit as st
 
+import config
 from pages.comum import data_hora_br, exigir, mostrar_erro, tabela
+from servicos.conector_ecossistema import ConectorEcossistema
 from servicos.erros import ErroValidacao
 from servicos.historico import ServicoHistorico
 from servicos.importador_csv import MODELOS, ImportadorCSV
@@ -47,6 +51,38 @@ if arquivo is not None:
                      "Corrija e envie de novo.")
             erros = pd.DataFrame(resultado.erros, columns=["Linha", "Coluna", "Problema"]).fillna("—")
             st.dataframe(erros, hide_index=True, width="stretch")
+
+st.divider()
+st.subheader("Sincronizar com os setores")
+st.caption("Busca a produção na Rastreabilidade, os defeitos na Qualidade e as paradas na Manutenção, pelas APIs "
+           "desses sistemas. Cada setor é gravado como uma importação: um registro inválido recusa só aquele setor "
+           "(RN06). Sincronizar de novo atualiza os registros, sem duplicar.")
+hoje = config.agora().date()
+c1, c2, _ = st.columns([1, 1, 2])
+sinc_inicio = c1.date_input("De", hoje - timedelta(days=6), format="DD/MM/YYYY", key="sinc_inicio")
+sinc_fim = c2.date_input("Até", hoje, format="DD/MM/YYYY", key="sinc_fim")
+if st.button("Sincronizar agora", type="primary"):
+    if sinc_fim < sinc_inicio:
+        st.error("A data final não pode ser anterior à inicial.")
+    else:
+        with st.spinner("Consultando os sistemas dos setores..."):
+            resultados = ConectorEcossistema().sincronizar(sinc_inicio, sinc_fim, usuario.id)
+        for r in resultados:
+            texto = f"**{r.nome}:** {r.mensagem}"
+            if r.status == "concluida":
+                st.success(texto)
+            elif r.status == "sem_dados":
+                st.info(texto)
+            elif r.status == "rejeitada":
+                st.error(texto)
+            else:   # fora_do_ar
+                st.warning(texto)
+            if r.erros:
+                erros = pd.DataFrame(r.erros, columns=["Linha", "Coluna", "Problema"]).fillna("—")
+                st.dataframe(erros, hide_index=True, width="stretch")
+            if r.ignorados:
+                with st.expander(f"{len(r.ignorados)} item(ns) ignorado(s)"):
+                    st.markdown("\n".join(f"- {i}" for i in r.ignorados))
 
 st.subheader("Histórico de importações")
 linhas = ServicoHistorico().importacoes()

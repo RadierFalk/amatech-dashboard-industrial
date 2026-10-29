@@ -101,6 +101,20 @@ python -m pytest testes -q
 
 Os modelos ficam em `database/modelos_csv/` e também podem ser baixados na tela de Importação. Separador `;`, datas em DD/MM/AAAA. Uma única linha inválida recusa o arquivo inteiro, e a tela lista linha, coluna e problema de cada erro (RN06).
 
+### Sincronização com os outros setores (OA3)
+
+Na tela **Importação**, a seção *Sincronizar com os setores* busca os dados dos outros sistemas da fábrica pelas APIs deles:
+
+| Setor | Sistema | Vira no Dashboard |
+| --- | --- | --- |
+| Rastreabilidade | `http://localhost:8000` (`/api/v1/passagens`, `/api/v1/produtos`) | Produção por dia, turno e modelo: cada Aprovado ou Reprovado é uma unidade |
+| Qualidade | `http://localhost:5000` (`/api/ocorrencias`) | Um defeito por ocorrência; reprocesso também gera retrabalho na Montagem final |
+| Manutenção | `http://localhost:5002` (`/api/manutencao/chamados`, `/api/equipamentos`) | Uma parada por chamado (da abertura ao fim do atendimento); máquinas |
+
+Cada setor é gravado como uma importação, com as mesmas regras da planilha: um registro inválido recusa só aquele setor (RN06), e a tela lista linha, coluna e problema. Sincronizar de novo atualiza os registros, sem duplicar. Horários em UTC são convertidos para o horário de Manaus; eventos fora dos turnos aparecem como ignorados. Um sistema fora do ar aparece como aviso.
+
+Os endereços e a chave da Rastreabilidade ficam em `config.py` e podem ser trocados pelas variáveis `RASTREABILIDADE_URL`, `RASTREABILIDADE_CHAVE`, `QUALIDADE_URL` e `MANUTENCAO_URL`. A correspondência de nomes entre os sistemas está em [`docs/CADASTROS_COMUNS.md`](docs/CADASTROS_COMUNS.md).
+
 ## Documentação
 
 | Documento | Arquivo |

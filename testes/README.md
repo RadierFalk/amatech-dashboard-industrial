@@ -23,4 +23,5 @@ python -m pytest testes -q
 | --- | --- |
 | `test_indicadores.py` | As fórmulas com os casos de referência acima, o semáforo e os limites (RN08), o período do filtro (RN05) e a parada em andamento |
 | `test_registro.py` | Integridade dos registros, meta duplicada (RN09), retrabalho sem motivo (RN02), paradas, atualização de registros externos, sinônimos dos cadastros comuns, login e permissões |
+| `test_conector.py` | Sincronização com os outros setores (APIs simuladas): conversão de UTC, contagem da produção, defeitos e retrabalho, paradas, atualização sem duplicar, RN06 por setor e sistema fora do ar |
 | `test_importador.py` | Importação tudo ou nada (RN06), erros por linha e coluna, coluna ausente, separador e codificação, modelos CSV e sincronização sem duplicar |
